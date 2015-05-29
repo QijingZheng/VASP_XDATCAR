@@ -11,5 +11,5 @@ calculate the following physical quantity
 
 NOTES
 
-    Set NBLOCK = 1 in the INCAR, so that all the configuration in the MD run is
+    Set NBLOCK = 1 in the INCAR so that all the configuration in the MD run is
     wrtten to XDATCAR.
