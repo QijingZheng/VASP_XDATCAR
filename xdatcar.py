@@ -2,6 +2,11 @@
 # This script was created by zqj
 # <Tue May 26 09:05:25 CST 2015>
 
+##################################### NOTES ##################################### 
+# 1. Set NBLOCK = 1 in the INCAR, so that all the configuration is wrtten to
+# XDATCAR.
+################################################################################# 
+
 import os
 import numpy as np
 import matplotlib.pyplot as plt
