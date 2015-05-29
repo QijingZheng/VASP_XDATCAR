@@ -13,3 +13,5 @@ NOTES
 
     Set NBLOCK = 1 in the INCAR so that all the configuration in the MD run is
     wrtten to XDATCAR.
+
+    The element mass (POMASS) and the MD time step (POTIM) is read from OUTCAR.
