@@ -140,13 +140,15 @@ class xdatcar:
             self.potim = float(outcar[lp].split()[2])
             self.mtype = np.array(outcar[lm].split()[2:], dtype=float)
 
-    def getTemp(self):
+    def getTemp(self, Nfree=None):
         """ Temp vs Time """
 
         for i in range(self.Niter-1):
             ke = np.sum(np.sum(self.velocity[i,:,:]**2, axis=1) * self.mions / 2.)
             self.Ken[i] = ke * 1E7 / Navogadro / ev
-            self.Temp[i] = 2 * self.Ken[i] / (kb * (3* (self.Nions - 1)))
+            if Nfree is None:
+                Nfree = 3 * (self.Nions - 1)
+            self.Temp[i] = 2 * self.Ken[i] / (kb * Nfree)
 
     def getVAF(self):
         """ Velocity Autocorrelation Function """
