@@ -44,6 +44,8 @@ class xdatcar:
 
         # position in Direct Coordinate
         self.position = None
+        # position in Cartesian Coordinate
+        self.positionC = None
         # Velocity in Angstrom per Femtosecond
         self.velocity = None
         self.readxdat()
@@ -115,7 +117,9 @@ class xdatcar:
         dpos[dpos <-0.5] += 1.0
         # Velocity in Angstrom per femtosecond
         for i in range(self.Niter-1):
+            self.positionC[i,:,:] = np.dot(self.cell, self.position[i,:,:].T).T 
             dpos[i,:,:] = np.dot(self.cell, dpos[i,:,:].T).T / self.potim
+
         self.velocity = dpos
 
 
