@@ -112,6 +112,7 @@ class xdatcar:
         self.Niter = self.position.shape[0]
 
         dpos = np.diff(self.position, axis=0)
+        self.positionC = np.zeros_like(self.position)
         # apply periodic boundary condition
         dpos[dpos > 0.5] -= 1.0
         dpos[dpos <-0.5] += 1.0
