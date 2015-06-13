@@ -120,7 +120,8 @@ class xdatcar:
         for i in range(self.Niter-1):
             self.positionC[i,:,:] = np.dot(self.cell, self.position[i,:,:].T).T 
             dpos[i,:,:] = np.dot(self.cell, dpos[i,:,:].T).T / self.potim
-
+            
+        self.positionC[-1,:,:] = np.dot(self.cell, self.position[-1,:,:].T).T  
         self.velocity = dpos
 
 
