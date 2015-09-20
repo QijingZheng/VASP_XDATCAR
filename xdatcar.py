@@ -118,10 +118,10 @@ class xdatcar:
         dpos[dpos <-0.5] += 1.0
         # Velocity in Angstrom per femtosecond
         for i in range(self.Niter-1):
-            self.positionC[i,:,:] = np.dot(self.cell, self.position[i,:,:].T).T 
-            dpos[i,:,:] = np.dot(self.cell, dpos[i,:,:].T).T / self.potim
-            
-        self.positionC[-1,:,:] = np.dot(self.cell, self.position[-1,:,:].T).T  
+            self.positionC[i,:,:] = np.dot(self.position[i,:,:], self.cell)
+            dpos[i,:,:] = np.dot(dpos[i,:,:], self.cell) / self.potim
+
+        self.positionC[-1,:,:] = np.dot(self.position[-1,:,:], self.cell)
         self.velocity = dpos
 
 
