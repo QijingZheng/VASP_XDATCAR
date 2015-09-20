@@ -200,7 +200,7 @@ class xdatcar:
         # from scipy.ndimage.filters import  gaussian_filter1d as gaussian
         # smVAF = gaussian(self.VAF2, sigma=sigma)
         # pdos = np.abs(fft(smVAF))**2
-        pdos = np.abs(fft(self.VAF2))**2
+        pdos = np.abs(fft(self.VAF2 - np.average(self.VAF2)))**2
 
         return omega[:N], pdos[:N]
 
