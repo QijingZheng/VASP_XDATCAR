@@ -8,6 +8,7 @@
 ################################################################################# 
 
 import os
+import warnings
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.fftpack import fft, ifft, fftfreq, fftshift
@@ -83,46 +84,95 @@ class xdatcar:
     def readxdat(self):
         """ Read VASP XDATCAR """
 
-        inp = [line for line in open(self.xdatcar) if line.strip()]
-        scale = float(inp[1])
-        
-        self.cell = np.array([line.split() for line in inp[2:5]],
-                              dtype=float)
+        # inp = [line for line in open(self.xdatcar) if line.strip()]
+        inp = open(self.xdatcar).readlines()
+
+        scale      = float(inp[1])
+        self.cell  = np.array([line.split() for line in inp[2:5]], dtype=float)
         self.cell *= scale
 
         ta = inp[5].split()
         tb = inp[6].split()
-        # print ta, tb
+
         if ta[0].isalpha():
             self.TypeName = ta
-            self.Ntype = len(ta)
-            self.Nelem = np.array(tb, dtype=int)
-            self.Nions = self.Nelem.sum()
+            self.Ntype    = len(ta)
+            self.Nelem    = np.array(tb, dtype=int)
+            self.Nions    = self.Nelem.sum()
+            self._nhead   = 8
         else:
-            print "VASP 4.X Format encountered..."
-            self.Nelem = np.array(tb, type=int)
-            self.Nions = self.Nelem.sum()
-            self.Ntype = len(tb)
+            # Names of each elements not written in XDATCAR head
+            self.Nelem    = np.array(ta, type=int)
+            self.Nions    = self.Nelem.sum()
+            self.Ntype    = len(ta)
             self.TypeName = None
+            self._nhead   = 7
 
-        pos = np.array([line.split() for line in inp[7:]
-                        if not line.split()[0].isalpha()],
-                        dtype=float)
-        self.position = pos.ravel().reshape((-1,self.Nions,3))
-        self.Niter = self.position.shape[0]
+        # For ISIF >= 3, VASP stores cell shapes at each step
+        if self.isif >= 3:
+            # No. of iterations
+            self.Niter = len(inp) // (self._nhead + self.Nions)
+            self.position  = np.array(
+                [
+                    [line.split() for line in inp[
+                        self._nhead + ii * (self.Nions + self._nhead)
+                        :
+                        self._nhead + ii * (self.Nions + self._nhead) + self.Nions
+                        ]
+                    ]
+                    for ii in range(self.Niter)
+                ], dtype=float
+            )
 
-        dpos = np.diff(self.position, axis=0)
-        self.positionC = np.zeros_like(self.position)
-        # apply periodic boundary condition
-        dpos[dpos > 0.5] -= 1.0
-        dpos[dpos <-0.5] += 1.0
-        # Velocity in Angstrom per femtosecond
-        for i in range(self.Niter-1):
-            self.positionC[i,:,:] = np.dot(self.position[i,:,:], self.cell)
-            dpos[i,:,:] = np.dot(dpos[i,:,:], self.cell) / self.potim
+            self.scales = np.array([
+                    inp[ii*(self.Nions + self._nhead)+1] for ii in range(self.Niter)
+                ],
+                dtype=float
+            )
 
-        self.positionC[-1,:,:] = np.dot(self.position[-1,:,:], self.cell)
-        self.velocity = dpos
+            self.cells = np.array(
+                [
+                    [line.split() for line in inp[
+                        2 + ii * (self.Nions + self._nhead)
+                        :
+                        2 + ii * (self.Nions + self._nhead) + 3
+                        ]
+                    ]
+                    for ii in range(self.Niter)
+                ], dtype=float
+             ) * self.scales[:,None,None]
+
+            self.positionC = np.zeros_like(self.position)
+            for ii in range(self.Niter):
+                self.positionC[ii,:,:] = np.dot(self.position[ii,:,:], self.cells[ii])
+                
+        else:
+            # No. of iterations
+            self.Niter = (len(inp) - self._nhead - 1) // (1 + self.Nions)
+
+            self.position  = np.array(
+                [
+                    [line.split() for line in inp[
+                        self._nhead + ii * (self.Nions+1)
+                        :
+                        self._nhead + ii * (self.Nions+1) + self.Nions
+                        ]
+                    ]
+                    for ii in range(self.Niter)
+                ], dtype=float
+            )
+            self.positionC = np.tensordot(self.position, self.cell, axes=(2,0))
+
+            # Velocity is ill-defined for varied-shape cell
+            dpos = np.diff(self.position, axis=0)
+            # apply periodic boundary condition
+            dpos[dpos > 0.5] -= 1.0
+            dpos[dpos <-0.5] += 1.0
+            # Velocity in Angstrom per femtosecond
+            for i in range(self.Niter-1):
+                dpos[i,:,:] = np.dot(dpos[i,:,:], self.cell) / self.potim
+
+            self.velocity = dpos
 
 
     def readoutcar(self):
@@ -131,20 +181,53 @@ class xdatcar:
         if os.path.isfile("OUTCAR"):
             # print "OUTCAR found!"
             # print "Reading POTIM & POMASS from OUTCAR..."
-
+            
             outcar = [line.strip() for line in open('OUTCAR')]
-            lp = 0; lm = 0; 
+            lm = 0;
             for ll, line in enumerate(outcar):
-                if 'POTIM' in line:
-                    lp = ll
+                if 'POTIM  =' in line:
+                    # lp = ll
+                    self.potim = float(line.split()[2])
+
+                # For ISIF >= 3, VASP output CELLs for each step
+                if 'ISIF   =' in line:
+                    self.isif = int(line.split()[2])
+
                 if 'Mass of Ions in am' in line:
                     lm = ll + 1
-                if lp and lm:
+
+                if lm:
                     break
 
-            # print outcar[lp].split(), lp, lm
-            self.potim = float(outcar[lp].split()[2])
-            self.mtype = np.array(outcar[lm].split()[2:], dtype=float)
+            # In case Masses not written in OUTCAR
+            if lm == 0:
+                raise ValueError("Masses for atoms NOT found! Check OUTCAR to see if 'POMASS' for atoms are present!")
+
+            # For heavy atoms, digits for atomic masses may stick together,
+            # resulting in cases like: "POMASS =  95.94 32.07183.85"
+
+            pomass_line = outcar[lm]
+            pomass_tmp  = pomass_line.split()[2:]
+            # Count the number of decimal points, which should equal to the
+            # number of types of elements
+            if len(pomass_tmp) != pomass_line.count('.'):
+                # Fortunately, VASP use fixed-format for printing the atomic
+                # masses, i.e. the number of decimal digits for all the floats
+                # are the same. Check the last float for this number.
+
+                nd   = pomass_line[::-1].index('.')
+                # Find the positions for the decimal points, and add "nd"
+                dpos = [ii+nd for ii,xx in enumerate(pomass_line) if xx == '.']
+                # Add extra space to the end the number and rejoin the string
+                pomass_new_line = ''.join(
+                        [xx + ' ' if ii in dpos
+                         else xx
+                         for ii, xx in
+                         enumerate(pomass_line)]
+                    )
+                self.mtype = np.array(pomass_new_line.split()[2:], dtype=float)
+            else:
+                self.mtype = np.array(pomass_tmp, dtype=float)
 
     def getTemp(self, Nfree=None):
         """ Temp vs Time """
