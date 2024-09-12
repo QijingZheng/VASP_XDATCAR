@@ -112,6 +112,9 @@ class xdatcar:
         if self.isif >= 3:
             # No. of iterations
             self.Niter = len(inp) // (self._nhead + self.Nions)
+            if len(inp) % (self._nhead + self.Nions) != 0:
+                raise ValueError("XDATCAR may have been corrupted!")
+
             self.position  = np.array(
                 [
                     [line.split() for line in inp[
@@ -149,6 +152,8 @@ class xdatcar:
         else:
             # No. of iterations
             self.Niter = (len(inp) - self._nhead - 1) // (1 + self.Nions)
+            if (len(inp) - self._nhead - 1) % (1 + self.Nions) != 0:
+                raise ValueError("XDATCAR may have been corrupted!")
 
             self.position  = np.array(
                 [
