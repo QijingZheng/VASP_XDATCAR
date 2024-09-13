@@ -14,7 +14,7 @@ import matplotlib.pyplot as plt
 from scipy.fftpack import fft, ifft, fftfreq, fftshift
 
 # Boltzmann Constant in [eV/K]
-kb = 8.617332478E-5
+kB = 8.617332478E-5
 # electron volt in [Joule]
 ev = 1.60217733E-19
 # Avogadro's Constant
@@ -242,7 +242,7 @@ class xdatcar:
             self.Ken[i] = ke * 1E7 / Navogadro / ev
             if Nfree is None:
                 Nfree = 3 * (self.Nions - 1)
-            self.Temp[i] = 2 * self.Ken[i] / (kb * Nfree)
+            self.Temp[i] = 2 * self.Ken[i] / (kB * Nfree)
 
     def getVAF(self):
         """ Velocity Autocorrelation Function """
