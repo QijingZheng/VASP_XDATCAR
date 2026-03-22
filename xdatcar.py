@@ -151,8 +151,8 @@ class xdatcar:
                 
         else:
             # No. of iterations
-            self.Niter = (len(inp) - self._nhead - 1) // (1 + self.Nions)
-            if (len(inp) - self._nhead - 1) % (1 + self.Nions) != 0:
+            self.Niter = (len(inp) - self._nhead + 1) // (1 + self.Nions)
+            if (len(inp) - self._nhead + 1) % (1 + self.Nions) != 0:
                 raise ValueError("XDATCAR may have been corrupted!")
 
             self.position  = np.array(
